@@ -13,7 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://system-siege.vercel.app
+        value: https://gfg-hackathon-alpha.vercel.app
 
 databases:
   - name: system-siege-db
