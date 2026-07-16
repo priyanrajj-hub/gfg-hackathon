@@ -1,40 +1,35 @@
-# ai.py — multi-provider AI router (BYOK)
-import os
-from abc import ABC, abstractmethod
+# ai.py — AI summary generation (Gemini)
+import httpx
+from app.core.config import settings
 
-class AIProvider(ABC):
-    @abstractmethod
-    async def analyze(self, prompt: str, image_b64: str | None = None) -> str: ...
 
-class GeminiProvider(AIProvider):
-    def __init__(self):
-        self.key = os.environ["GEMINI_API_KEY"]   # set in Vercel/backend env
-        self.model = "gemini-2.0-flash"             # disclose in README
-    async def analyze(self, prompt, image_b64=None):
-        # call https://generativelanguage.googleapis.com/... with self.key
-        ...
+async def get_ai_insight(prompt: str) -> str:
+    """Call Gemini API with the given prompt and return the text response."""
+    if not settings.AI_API_KEY:
+        return "AI summary unavailable: no API key configured."
 
-class GrokProvider(AIProvider):
-    def __init__(self):
-        self.key = os.environ["GROK_API_KEY"]
-        self.model = "grok-2-latest"
-    async def analyze(self, prompt, image_b64=None):
-        # call https://api.x.ai/v1/chat/completions
-        ...
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{settings.AI_MODEL}:generateContent?key={settings.AI_API_KEY}"
+    )
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
-class OpenAIProvider(AIProvider):
-    def __init__(self):
-        self.key = os.environ["OPENAI_API_KEY"]
-        self.model = "gpt-4o-mini"
-    async def analyze(self, prompt, image_b64=None):
-        # call https://api.openai.com/v1/chat/completions
-        ...
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception as e:
+        return f"AI summary unavailable: {str(e)}"
 
-PROVIDERS = {
-    "gemini": GeminiProvider,
-    "grok": GrokProvider,
-    "openai": OpenAIProvider,
-}
 
-async def get_ai_insight(prompt: str, provider: str = "gemini", image_b64=None):
-    return await PROVIDERS[provider]().analyze(prompt, image_b64)
+async def generate_summary(scan: dict, score: int) -> str:
+    """Build a prompt from scan results and get an AI-generated summary."""
+    prompt = (
+        "You are a security analyst. Summarize this website scan in 2-3 sentences "
+        "for a non-technical stakeholder.\n\n"
+        f"Security score: {score}/100\n"
+        f"Scan details: {scan}"
+    )
+    return await get_ai_insight(prompt)
