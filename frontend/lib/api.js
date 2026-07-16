@@ -1,4 +1,18 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const DEV_API_BASE = "http://localhost:8000";
+const PROD_API_BASE = "https://gfg-hackathon-1.onrender.com";
+
+let API_BASE = DEV_API_BASE;
+
+if (typeof window !== "undefined") {
+  const hostname = window.location.hostname;
+  if (hostname && !hostname.includes("localhost") && !hostname.includes("127.0.0.1")) {
+    API_BASE = PROD_API_BASE;
+  }
+}
+
+if (process.env.NEXT_PUBLIC_API_BASE) {
+  API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+}
 
 function getToken() {
   if (typeof window === "undefined") return null;

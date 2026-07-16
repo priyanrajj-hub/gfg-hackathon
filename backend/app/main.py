@@ -8,7 +8,9 @@ from app.api import auth, sites, scan, alerts
 app = FastAPI(title="Website Defacement & Vulnerability Assessment Platform")
 
 # Strict CORS — only allow the configured frontend origin(s), never "*".
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+default_origins = "http://localhost:3000,https://gfg-hackathon-alpha.vercel.app,https://gfg-hackathon-alpha-vercel.app"
+origins_raw = os.getenv("ALLOWED_ORIGINS", default_origins)
+ALLOWED_ORIGINS = [o.strip() for o in origins_raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
